@@ -2,6 +2,7 @@ import os
 
 import tiktoken
 import torch
+from torch.nn import functional as F
 from gpt2 import GPT, GPTConfig
 
 from src.model.train_loop import device_type
