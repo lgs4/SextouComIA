@@ -353,7 +353,7 @@ http = [
 ]
 
 [[package]]
-name = "goumis"
+name = "peppe"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
