@@ -72,11 +72,68 @@ O GPT-2 (Generative Pre-trained Transformer 2) é um modelo de linguagem desenvo
 
 ## 📝 Uso
 
-```python
-from src import main
+Para rodar o projeto e necessario criar o dataset dos greentexts do 4chan, para treinar o modelo.
 
-# Execute o treinamento
-python main.py
+
+1) Download do dataset
+
+```python
+uv run src/model/greentexts.py
+```
+
+2) Treinamento do modelo
+
+```python
+uv run src/model/train.py
+```
+
+3) Ataque ao modelo
+
+O modelo por ser um gerador de texto podemos atacar gerando dados ofensivos ou preconceituosos, para isso basta passar um prompt simples que o modelo ira completar o texto.
+
+```python
+uv run src/model/attack.py
+```
+
+Isso ira gerar o txt com o prompt base em um txt
+
+4) Caso queira testar o modelo por conta propria basta usar o seguinte trecho de codigo
+
+```python
+import torch
+import tiktoken
+from gpt2 import GPT, GPTConfig
+from torch.nn import functional as F
+
+model = GPT(
+    GPTConfig(block_size=256, vocab_size=50304, n_layer=4, n_head=4, n_embd=256)
+)
+
+enc = tiktoken.get_encoding("gpt2")
+
+weights_path = "./weights/gpt2_weights.pth"
+model.load_state_dict(torch.load(weights_path))
+
+enc_input = torch.tensor(enc.encode("Seu prompt aqui"), dtype=torch.long)
+enc_input = enc_input.unsqueeze(0).repeat(4, 1)
+
+model.eval()
+with torch.no_grad():
+    with torch.autocast(device_type = "cpu", dtype = torch.bfloat16):
+        logits, loss = model(input)
+    logits = logits[:, -1, :]
+    probs = F.softmax(logits, dim=-1)
+    topk_probs, topk_indices = torch.topk(probs, 50, dim=-1)
+    generator = torch.Generator().manual_seed(42)
+    ix = torch.multinomial(topk_probs, 1, generator=generator)
+    xcol = torch.gather(topk_indices, -1, ix)
+    text = torch.cat((text, xcol), dim=1)
+for i in range(4):
+    tokens = text[i, :32].tolist()
+    decoded = enc.decode(tokens)
+
+with open("output.txt", "a") as f:
+    f.write(f"Output {i+1}:\n{decoded}\n\n")
 ```
 
 ## ⚠️ Aviso
